@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <title>Distance Matrix Service</title>
+    <script>
+      var ans={
+        try:""
+      }
+      function initMap() {
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 11,
+          center: {lat: 28.6762331, lng: 77.2024506},
+          mapTypeId: 'terrain'
+
+        });
+
+        var flightPlanCoordinates = [
+          {lat: 28.6687118, lng: 77.2303305},
+          {lat: 28.6762331, lng: 77.2024506},
+
+          {lat: 28.6198631, lng: 77.0503298},
+          {lat: 28.727832, lng: 77.048254}
+        ];
+        flightPlanCoordinates.forEach(function(i){
+          console.log(i);
+          var marker = new google.maps.Marker({
+            position: i,
+            map: map,
+            title: 'Hello World!',
+          });
+        })
+
+        var flightPlanCoordinates2 = [
+          {lat: 28.6687118, lng: 77.2303305},
+          {lat: 28.6762331, lng: 77.2024506},
+
+          {lat: 28.7009364, lng: 77.1166042},
+          {lat: 28.727832, lng: 77.048254}
+        ];
+        var flightPath = new google.maps.Polyline({
+          path: flightPlanCoordinates,
+          geodesic: true,
+          strokeColor: '#ff4500',
+          strokeOpacity: 1.0,
+          strokeWeight: 5
+        });
+        var flightPath2 = new google.maps.Polyline({
+          path: flightPlanCoordinates2,
+          geodesic: true,
+          strokeColor: '#ff4500',
+          strokeOpacity: 1.0,
+          strokeWeight: 5
+        });
+
+        flightPath.setMap(map);
+        flightPath2.setMap(map);
+
+        /*var bounds = new google.maps.LatLngBounds;
+        var markersArray = [];
+*/
+        var origin1 = {lat: 28.6198631, lng: 77.0503298};
+        var destinationA = {lat: 28.7009364, lng: 77.1166042};
+
+        var destinationIcon = 'https://chart.googleapis.com/chart?' +
+            'chst=d_map_pin_letter&chld=D|FF0000|000000';
+        var originIcon = 'https://chart.googleapis.com/chart?' +
+            'chst=d_map_pin_letter&chld=O|FFFF00|000000';
+        /*var map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 28.6762331, lng: 77.2024506},
+          zoom: 10
+        });*/
+        var geocoder = new google.maps.Geocoder;
+
+        var service = new google.maps.DistanceMatrixService;
+        service.getDistanceMatrix({
+          origins: [origin1],
+          destinations: [destinationA],
+          travelMode: 'DRIVING',
+          unitSystem: google.maps.UnitSystem.METRIC,
+          avoidHighways: false,
+          avoidTolls: false
+        }, function(response, status) {
+          if (status !== 'OK') {
+            alert('Error was: ' + status);
+          } else {
+            var originList = response.originAddresses;
+            var destinationList = response.destinationAddresses;
+            var outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = '';
+            // deleteMarkers(markersArray);
+
+            var showGeocodedAddressOnMap = function(asDestination) {
+               var icon = asDestination ? destinationIcon : originIcon;
+              return function(results, status) {
+                if (status === 'OK') {
+                  // map.fitBounds(bounds.extend(results[0].geometry.location));
+                  // markersArray.push(new google.maps.Marker({
+                  //   map: map,
+                  //   position: results[0].geometry.location,
+                  //   icon: icon
+                  // }));
+                } else {
+                  alert('Geocode was not successful due to: ' + status);
+                }
+              };
+            };
+
+            for (var i = 0; i < originList.length; i++) {
+              var results = response.rows[i].elements;
+              geocoder.geocode({'address': originList[i]},
+                  showGeocodedAddressOnMap(false));
+              for (var j = 0; j < results.length; j++) {
+                geocoder.geocode({'address': destinationList[j]},
+                    showGeocodedAddressOnMap(true));
+                outputDiv.innerHTML += originList[i] + ' to ' + destinationList[j] +
+                    ': ' + results[j].distance.text + ' in ' +
+                    results[j].duration.text + '<br>';
+
+                console.log(results[j].distance.text);
+                ans.try=results[j].distance.text;
+              }
+            }
+          }
+        });
+
+      }
+
+     /* function deleteMarkers(markersArray) {
+        for (var i = 0; i < markersArray.length; i++) {
+          markersArray[i].setMap(null);
+        }
+        markersArray = [];
+      }*/
+      $(document).ready(function() {
+             $("#test").submit(function(event){
+               console.log(ans.try);
+                  $.ajax({
+                       type:"POST",
+                       url:"{% url 'app:route' %}",
+                       data: {
+                              'data':ans.try
+                              },
+                       success: function(){
+                           $('#message').html("<h2>Contact Form Submitted!</h2>")
+                       }
+                  });
+                  return false; //<---- move it here
+             });
+
+      });
+    </script>
+    <style>
+      #right-panel {
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+      #right-panel select, #right-panel input {
+        font-size: 15px;
+      }
+
+      #right-panel select {
+        width: 100%;
+      }
+
+      #right-panel i {
+        font-size: 12px;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        width: 50%;
+      }
+      #right-panel {
+        float: right;
+        width: 48%;
+        padding-left: 2%;
+      }
+      #output {
+        font-size: 11px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="right-panel">
+      <div id="inputs">
+             </div>
+      <div>
+        <strong>Results</strong>
+      </div>
+      <div id="output"></div>
+    </div>
+    <div id="map"></div>
+    <form method='post' id ='test'>
+    {% csrf_token %}
+    <input type='submit' value='Check route'/>
+
+
+
+</form>
+<!-- <script>
+$(document).ready(function() {
+       $("#test").submit(function(event){
+            $.ajax({
+                 type:"POST",
+                 url:"{% url 'app:route' %}",
+                 data: {
+                        'data': 10
+                        },
+                 success: function(){
+                     $('#message').html("<h2>Contact Form Submitted!</h2>")
+                 }
+            });
+            return false;
+       });
+
+});
+</script> -->
+
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB1gn37D90gXMNJg6RzuL_djY2T5WlusEM&callback=initMap">
+    </script>
+  </body>
+</html>
